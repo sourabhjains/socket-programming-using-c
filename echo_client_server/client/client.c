@@ -1,6 +1,8 @@
 /* This program works as a client for an echo server.
  *
  * @author  Soruabh Jain
+ *	    M.Tech
+ *	    Computer Science and Engineering	
  *          National Institute of Technology, Karnataka
  */
 

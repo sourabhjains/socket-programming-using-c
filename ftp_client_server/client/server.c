@@ -90,9 +90,8 @@ int main(int argc,char *argv[])
 		}
 		else if(!strcmp(command,"get"))
 		{
-			sscanf(buf, "%s%s", filename, filename);    // To handle the special character in the file name two times same --
-								    // variable name is given	
-			stat(filename, &fileInfo);	
+			sscanf(buf, "%s%s", filename, filename);
+			stat(filename, &fileInfo);
 			filehandle = open(filename, O_RDONLY);
 			size = fileInfo.st_size;
 			if(filehandle == -1)
@@ -102,8 +101,7 @@ int main(int argc,char *argv[])
 			send(clientFileDescriptor, &size, sizeof(int), 0);
 			if(size)
 			{		
-	  			sendfile(clientFileDescriptor, filehandle, NULL, size); //Write the content of filehandle file descriptor to
-											// clientFileDescriptor
+	  			sendfile(clientFileDescriptor, filehandle, NULL, size);
 			}
       
 		}
@@ -134,16 +132,16 @@ int main(int argc,char *argv[])
 		}
 		else if(!strcmp(command, "pwd"))
 		{
-			system("pwd>temp.txt");			//Get the current working directory and store it in temp.txt file
+			system("pwd>temp.txt");
 			i = 0;
-			FILE *f = fopen("temp.txt","r");	// Open temp.txt in read mode
-			while(!feof(f))				// Read the full content of file 
-			{					
-				buf[i++] = fgetc(f);		// Write every character in buffer
+			FILE*f = fopen("temp.txt","r");
+			while(!feof(f))
+			{
+				buf[i++] = fgetc(f);
 			}
 			buf[i-1] = '\0';
-			fclose(f);				// Close the file
-			send(clientFileDescriptor, buf, 100, 0); // Send the buffer data back to the client
+			fclose(f);
+			send(clientFileDescriptor, buf, 100, 0);
 		}
 		else if(!strcmp(command, "cd"))
 		{
