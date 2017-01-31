@@ -1,3 +1,12 @@
+/* This program works as a client for an echo server.
+ *
+ * @author  Soruabh Jain
+ *          National Institute of Technology, Karnataka
+ */
+
+
+
+
 #include<stdio.h>
 #include<stdlib.h>
 
