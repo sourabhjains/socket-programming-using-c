@@ -50,6 +50,7 @@ int main(int argc, char** argv)
 	while(1)
 	{
 		new = accept(sock, (struct sockaddr *)&client, &sockaddr_len);
+		printf("sock :%d  \n new :%d\n",sock, new);
 		if(new == ERROR)
 		{
 			perror("accept :");
