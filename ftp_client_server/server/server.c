@@ -38,6 +38,7 @@
 
 int main(int argc,char *argv[])
 {
+	printf("\n\n\n\nsourabh jain\n");
 	struct sockaddr_in server;	// Store server socket information
 	struct sockaddr_in client;	// Store client socket information
 
@@ -77,22 +78,22 @@ int main(int argc,char *argv[])
 	{
 		recv(clientFileDescriptor, buf, 100, 0);	// Copy the content of CFD to buf (in this case it a command)
 		sscanf(buf, "%s", command);			// Copy the content of buffer to command array
-		if(!strcmp(command, "ls"))
+		if(!strcmp(command, "ls"))			// strcmp returns zero if string match else 1 or -1
 		{
-			system("ls >temps.txt");		// System call to write the list of available files in current working --
+			system("ls >temps.txt");		// System call to write the list of available files in current working -
 								// to temps.txt file
 			stat("temps.txt", &fileInfo);		// stat gives information about file
 			size = fileInfo.st_size;		// Extracting file size
 			send(clientFileDescriptor, &size, sizeof(int), 0);	// Sending file size to client side
-			filehandle = open("temps.txt", O_RDONLY);		// Open assign a file descriptor to a file and return --
+			filehandle = open("temps.txt", O_RDONLY);		// Open assign a file descriptor to a file and return -
 										// that descriptor 								 
 			sendfile(clientFileDescriptor, filehandle, NULL, size); // Write the content of one file descriptor to another
 		}
 		else if(!strcmp(command,"get"))
 		{
-			sscanf(buf, "%s%s", filename, filename);    // To handle the special character in the file name two times same --
+			sscanf(buf, "%s%s", filename, filename);    // To handle the special character in the file name two times same -
 								    // variable name is given	
-			stat(filename, &fileInfo);	
+			stat(filename, &fileInfo);		    	
 			filehandle = open(filename, O_RDONLY);
 			size = fileInfo.st_size;
 			if(filehandle == -1)
@@ -107,30 +108,30 @@ int main(int argc,char *argv[])
 			}
       
 		}
-		else if(!strcmp(command, "put"))
+		else if(!strcmp(command, "put"))	
 		{
 			int c = 0, len;
 			char *f;
-			sscanf(buf+strlen(command), "%s", filename);
-			recv(clientFileDescriptor, &size, sizeof(int), 0);
+			sscanf(buf+strlen(command), "%s", filename);	// Copying the file name to filename array by eliminating put command
+			recv(clientFileDescriptor, &size, sizeof(int), 0);   // Receive file size
 			i = 1;
-			while(1)
+			while(1)					     // It checks the availabiltiy of file
 			{
-				filehandle = open(filename, O_CREAT | O_EXCL | O_WRONLY, 0666);
-				if(filehandle == -1)
+				filehandle = open(filename, O_CREAT | O_EXCL | O_WRONLY, 0666);   // Open return -1 if file already exists 
+				if(filehandle == -1)		
 				{
-					sprintf(filename + strlen(filename), "%d", i);
+					sprintf(filename + strlen(filename), "%d", i);	// If file exists then append 1 at last and check again
 				}
 				else
 				{
-					break;				
+					break;			// It breaks when open return a unique file descriptor		
 				}
 			}
-			f = malloc(size);
-			recv(clientFileDescriptor, f, size, 0);
-			c = write(filehandle, f, size);
-			close(filehandle);
-			send(clientFileDescriptor, &c, sizeof(int), 0);
+			f = malloc(size);			// Create a dynamic buffer
+			recv(clientFileDescriptor, f, size, 0); // Copy the content of clientFileDescriptor to buffer
+			c = write(filehandle, f, size);		// Write the content of buffer to file
+			close(filehandle);			// Close the file
+			send(clientFileDescriptor, &c, sizeof(int), 0);	// If c is non-zero it indicates that file copied successfully 
 		}
 		else if(!strcmp(command, "pwd"))
 		{
@@ -147,7 +148,7 @@ int main(int argc,char *argv[])
 		}
 		else if(!strcmp(command, "cd"))
 		{
-			if(chdir(buf+3) == 0)
+			if(chdir(buf+3) == 0)			// Change the current working directory, on success zero is returned.
 			{
 				c = 1;
 			}
@@ -156,13 +157,15 @@ int main(int argc,char *argv[])
 				c = 0;
 			}
 
-			send(clientFileDescriptor, &c, sizeof(int), 0);
+			send(clientFileDescriptor, &c, sizeof(int), 0);	// Return 1 to client if directory changed else 0 
 		}
-		else if(!strcmp(command, "bye") || !strcmp(command, "quit"))
+		else if(!strcmp(command, "quit"))
 		{
 			printf("FTP server quitting..\n");
 			i = 1;
 			send(clientFileDescriptor, &i, sizeof(int), 0);
+			close(serverFileDescriptor);
+			close(clientFileDescriptor);
 			exit(0);
 		}
 	}

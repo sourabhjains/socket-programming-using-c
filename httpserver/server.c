@@ -124,15 +124,15 @@ void respond(int n)
     char mesg[99999], *reqline[3], data_to_send[BYTES], path[99999];
     int rcvd, fd, bytes_read;
 
-    memset( (void*)mesg, (int)'\0', 99999 );
+    memset( (void*)mesg, (int)'\0', 99999 );  // mesg buffer filled with '\0'
 
-    rcvd=recv(clients[n], mesg, 99999, 0);
+    rcvd=recv(clients[n], mesg, 99999, 0);    // Copy the content of socket descriptor clients[n] to mesg buffer
 
-    if (rcvd<0)    // receive error
+    if (rcvd<0)    			      // Error checking
         fprintf(stderr,("recv() error\n"));
-    else if (rcvd==0)    // receive socket closed
+    else if (rcvd==0)    		      // Client socket is closed
         fprintf(stderr,"Client disconnected upexpectedly.\n");
-    else    // message received
+    else
     {
         printf("%s", mesg);
         reqline[0] = strtok (mesg, " \t\n");
@@ -165,7 +165,7 @@ void respond(int n)
     }
 
     //Closing SOCKET
-    shutdown (clients[n], SHUT_RDWR);         //All further send and recieve operations are DISABLED...
-    close(clients[n]);
-    clients[n]=-1;
+    shutdown (clients[n], SHUT_RDWR);         // Disable the future requests, it make this server stateless and   
+    close(clients[n]);		  	      // Close the nth file descriptor	
+    clients[n]=-1;			      // Reset the nth array position
 }
