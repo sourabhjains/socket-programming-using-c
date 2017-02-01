@@ -58,11 +58,12 @@ int main(int argc, char **argv)
 
 	while(1)
 	{
+		printf("\nEnter message : ");
 		fgets(input, BUFFER, stdin);		// Take input stirng from user
 		send(sock, input, strlen(input), 0);	// Write the content of input to sock socket descriptor and send it
 		len = recv(sock, output, BUFFER, 0);	// Copy the content of file descriptor to output buffer
 		output[len] = '\0';		
-		printf("%s", output);
+		printf("\nReply from Srever : %s", output);
 	}
 	
 	close(sock);					// Close the server descriptor
