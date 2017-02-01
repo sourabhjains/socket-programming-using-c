@@ -36,7 +36,7 @@ int main(int argc,char *argv[])
 	int serverFileDescriptor;
 	int choice;
 	char buf[100], command[5], filename[20], *f;
-	int k, size, status;
+	int size, status;
 	int filehandle;
 
 	if((serverFileDescriptor = socket(AF_INET, SOCK_STREAM, 0)) == ERROR)
@@ -58,12 +58,18 @@ int main(int argc,char *argv[])
 
 	while(1)
 	{
-		printf("Enter a choice:\n1- get\n2- put\n3- pwd\n4- ls\n5- cd\n6- quit\n");
+		printf("\nEnter 1 to get the file from server:");
+		printf("\nEnter 2 to put the file to server:");
+		printf("\nEnter 3 to get the current working directory of server:");
+		printf("\nEnter 4 to list the file available :");
+		printf("\nEnter 5 to change the directory :");
+		printf("\nEnter 6 to Quit:");
+		printf("\nEnter a choice :");
 		scanf("%d", &choice);
 		switch(choice)
 		{
 			case 1:
-				printf("Enter filename to get: ");
+				printf("\nEnter filename : ");
 				scanf("%s", filename);
 				strcpy(buf, "get ");
 				strcat(buf, filename);
@@ -72,7 +78,7 @@ int main(int argc,char *argv[])
 
 				if(!size)
 				{
-					printf("No such file on the remote directory\n\n");
+					printf("\nFile doesn't exists.\n");
 					break;
 				}
 
@@ -100,12 +106,12 @@ int main(int argc,char *argv[])
 				break;
 
 			case 2:
-				printf("Enter filename to put to server: ");
+				printf("\nEnter filename : ");
 				scanf("%s", filename);
 				filehandle = open(filename, O_RDONLY);
 				if(filehandle == -1)
 				{
-					printf("No such file on the local directory\n\n");
+					printf("File doesn't exists\n\n");
 					break;
 				}
 				
@@ -119,11 +125,11 @@ int main(int argc,char *argv[])
 				recv(serverFileDescriptor, &status, sizeof(int), 0);
 				if(status)
 				{
-					printf("File stored successfully\n");
+					printf("File stored\n");
 				}
 				else
 				{
-					printf("File failed to be stored to remote machine\n");
+					printf("\nFile transmission failed");
 				}
 				break;
 			case 3:
@@ -141,7 +147,7 @@ int main(int argc,char *argv[])
 				recv(serverFileDescriptor, f, size, 0);
 				filehandle = open("temp.txt", O_CREAT|O_WRONLY, 0666);
 				write(filehandle, f, size, 0);
-				printf("The remote directory listing is as follows:\n");
+				printf("List of files at remote directory:\n");
 				system("cat temp.txt");
 				close(filehandle);
 				break;
