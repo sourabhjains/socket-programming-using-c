@@ -1,79 +1,100 @@
-#include<stdio.h>
-#include<string.h>
-#include<stdlib.h>
-#include<unistd.h>
-#include<sys/types.h>
-#include<sys/stat.h>
-#include<sys/socket.h>
+/* This program works as file server.
+ * It is capable of sending, receiving files and executing basic commands.
+ * 
+ * @author  Soruabh Jain
+ *	    M.Tech
+ *	    Computer Science and Engineering	
+ *          National Institute of Technology, Karnataka
+ */
+
+
+
+
+#include <stdio.h>
+#include <stdlib.h>
+
+// To avail Basic networking functionality
+#include <sys/socket.h>
 #include<arpa/inet.h>
+#include <string.h>
+
+// To get the cause of an error
+#include<errno.h>
+
+// To close the socket descriptor
+#include <unistd.h>
+
+
+// To get the file size using stat function
+#include<sys/stat.h>
+
+// To write the content of one file descriptor to another, using sendfile()
+#include<sys/sendfile.h>
+
+// To specify file access like:- O_RDONLY (open in read only mode)
+#include<fcntl.h>
 #include<netdb.h>
 #include<signal.h>
-#include<fcntl.h>
 
 #define CONNMAX 1000
 #define BYTES 1024
 
-char *ROOT;
+
+// To track the path
+char *ROOT;	
+
+// Server and client socket descriptor		
 int listenfd, clients[CONNMAX];
-void error(char *);
 void startServer(char *);
+
+// Handel the clients
 void respond(int);
 
 int main(int argc, char* argv[])
 {
-    struct sockaddr_in clientaddr;
-    socklen_t addrlen;
-    char c;    
-    
-    //Default Values PATH = ~/ and PORT=10000
-    char PORT[6];
-    ROOT = getenv("PWD");
-    strcpy(PORT,"10000");
+	struct sockaddr_in clientaddr;
+	socklen_t addrlen;
+	char c;
+	int slot;
+	int i;
+	char PORT[6];
+	ROOT = getenv("PWD");
 
-    int slot=0;
+	// Srever listen at port 10000
+	strcpy(PORT,"10000");
 
-    //Parsing the command line arguments
-    while ((c = getopt (argc, argv, "p:r:")) != -1)
-        switch (c)
-        {
-            case 'r':
-                ROOT = malloc(strlen(optarg));
-                strcpy(ROOT,optarg);
-                break;
-            case 'p':
-                strcpy(PORT,optarg);
-                break;
-            case '?':
-                fprintf(stderr,"Wrong arguments given!!!\n");
-                exit(1);
-            default:
-                exit(1);
-        }
-    
-    printf("Server started at port no. %s%s%s with root directory as %s%s%s\n","\033[92m",PORT,"\033[0m","\033[92m",ROOT,"\033[0m");
-    // Setting all elements to -1: signifies there is no client connected
-    int i;
-    for (i=0; i<CONNMAX; i++)
-        clients[i]=-1;
-    startServer(PORT);
+	// Setting all elements to -1: signifies there is no client connected
+	for (i=0; i<CONNMAX; i++)
+	{
+		clients[i]=-1;
+	}
 
-    // ACCEPT connections
-    while (1)
-    {
-        addrlen = sizeof(clientaddr);
-        clients[slot] = accept (listenfd, (struct sockaddr *) &clientaddr, &addrlen);
+	// Put the server on listening mode
+	startServer(PORT);
 
-        if (clients[slot]<0)
-            error ("accept() error");
-        else
-        {
-            if ( fork()==0 )
-            {
-                respond(slot);
-                exit(0);
-            }
+	while (1)
+	{
+	addrlen = sizeof(clientaddr);
+
+	// Accept connection
+	clients[slot] = accept (listenfd, (struct sockaddr *) &clientaddr, &addrlen);
+
+	if (clients[slot]<0)
+	{	
+		error ("accept() error");
+	}
+	else
+	{
+		// Create a child process to responed to client
+		if ( fork()==0 )
+		{
+			// Handle the client at slot
+			respond(slot);
+			exit(0);
+		}
         }
 
+	// Set the slot element to -1 : signifies there is no client at this slot
         while (clients[slot]!=-1) slot = (slot+1)%CONNMAX;
     }
 
@@ -83,89 +104,114 @@ int main(int argc, char* argv[])
 //start server
 void startServer(char *port)
 {
-    struct addrinfo hints, *res, *p;
+	struct addrinfo hints, *res, *p;
 
-    // getaddrinfo for host
-    memset (&hints, 0, sizeof(hints));
-    hints.ai_family = AF_INET;
-    hints.ai_socktype = SOCK_STREAM;
-    hints.ai_flags = AI_PASSIVE;
-    if (getaddrinfo( NULL, port, &hints, &res) != 0)
-    {
-        perror ("getaddrinfo() error");
-        exit(1);
-    }
-    // socket and bind
-    for (p = res; p!=NULL; p=p->ai_next)
-    {
-        listenfd = socket (p->ai_family, p->ai_socktype, 0);
-        if (listenfd == -1) continue;
-        if (bind(listenfd, p->ai_addr, p->ai_addrlen) == 0) break;
-    }
-    if (p==NULL)
-    {
-        perror ("socket() or bind()");
-        exit(1);
-    }
+	// getaddrinfo for host
+	memset (&hints, 0, sizeof(hints));
+	hints.ai_family = AF_INET;
+	hints.ai_socktype = SOCK_STREAM;
+	hints.ai_flags = AI_PASSIVE;
 
-    freeaddrinfo(res);
+	if(getaddrinfo( NULL, port, &hints, &res) != 0)
+	{
+		perror ("getaddrinfo() error");
+		exit(1);
+	}
 
-    // listen for incoming connections
-    if ( listen (listenfd, 1000000) != 0 )
-    {
-        perror("listen() error");
-        exit(1);
-    }
+	// socket and bind
+	for(p = res; p!=NULL; p=p->ai_next)
+	{
+		listenfd = socket (p->ai_family, p->ai_socktype, 0);
+		if(listenfd == -1)
+		{
+			continue;
+		}
+
+		if (bind(listenfd, p->ai_addr, p->ai_addrlen) == 0)
+		{
+			break;
+		}
+    	}
+
+	if (p==NULL)
+	{
+		perror ("socket() or bind()");
+		exit(1);
+	}
+	
+	freeaddrinfo(res);
+	// listen for incoming connections
+	if ( listen (listenfd, 1000000) != 0 )
+	{
+		perror("listen() error");
+		exit(1);
+	}
 }
+
 
 //client connection
 void respond(int n)
 {
-    char mesg[99999], *reqline[3], data_to_send[BYTES], path[99999];
-    int rcvd, fd, bytes_read;
+	char mesg[99999], *reqline[3], data_to_send[BYTES], path[99999];
+	int rcvd, fd, bytes_read;
 
-    memset( (void*)mesg, (int)'\0', 99999 );  // mesg buffer filled with '\0'
+	// mesg buffer filled with '\0'
+	memset( (void*)mesg, (int)'\0', 99999 );
 
-    rcvd=recv(clients[n], mesg, 99999, 0);    // Copy the content of socket descriptor clients[n] to mesg buffer
+	// Copy the content of socket descriptor clients[n] to mesg buffer
+	rcvd=recv(clients[n], mesg, 99999, 0);
 
-    if (rcvd<0)    			      // Error checking
-        fprintf(stderr,("recv() error\n"));
-    else if (rcvd==0)    		      // Client socket is closed
-        fprintf(stderr,"Client disconnected upexpectedly.\n");
-    else
-    {
-        printf("%s", mesg);
-        reqline[0] = strtok (mesg, " \t\n");
-        if ( strncmp(reqline[0], "GET\0", 4)==0 )
-        {
-            reqline[1] = strtok (NULL, " \t");
-            reqline[2] = strtok (NULL, " \t\n");
-            if ( strncmp( reqline[2], "HTTP/1.0", 8)!=0 && strncmp( reqline[2], "HTTP/1.1", 8)!=0 )
-            {
-                write(clients[n], "HTTP/1.0 400 Bad Request\n", 25);
-            }
-            else
-            {
-                if ( strncmp(reqline[1], "/\0", 2)==0 )
-                    reqline[1] = "/index.html";        //Because if no file is specified, index.html will be opened by default (like it happens in APACHE...
+	// Error checking
+	if (rcvd<0)  
+	{
+		fprintf(stderr,("recv() error\n"));
+	}
+	else if (rcvd==0)
+	{
+		fprintf(stderr,"Client disconnected upexpectedly.\n");
+	}
+	else
+	{
+		printf("%s", mesg);
+		reqline[0] = strtok (mesg, " \t\n");
+		if ( strncmp(reqline[0], "GET\0", 4)==0 )
+		{
+			reqline[1] = strtok (NULL, " \t");
+			reqline[2] = strtok (NULL, " \t\n");
+			if ( strncmp( reqline[2], "HTTP/1.0", 8)!=0 && strncmp( reqline[2], "HTTP/1.1", 8)!=0 )
+			{
+				write(clients[n], "HTTP/1.0 400 Bad Request\n", 25);
+			}
+			else
+			{
+				if ( strncmp(reqline[1], "/\0", 2)==0 )
+				{
+				//Because if no file is specified, index.html will be opened by default (like it happens in APACHE...
+				reqline[1] = "/index.html";        
+				}
 
-                strcpy(path, ROOT);
-                strcpy(&path[strlen(ROOT)], reqline[1]);
-                printf("file: %s\n", path);
+				strcpy(path, ROOT);
+				strcpy(&path[strlen(ROOT)], reqline[1]);
+				printf("file: %s\n", path);
+				
+				// File found
+				if ( (fd=open(path, O_RDONLY))!=-1 )
+				{
+					send(clients[n], "HTTP/1.0 200 OK\n\n", 17, 0);
+					while ( (bytes_read=read(fd, data_to_send, BYTES))>0 )
+					write (clients[n], data_to_send, bytes_read);
+				}
+				else
+				{
+					//File not found
+					write(clients[n], "HTTP/1.0 404 Not Found\n", 23); //FILE NOT FOUND
+				}
+            		}
+       		 }
+    	}
 
-                if ( (fd=open(path, O_RDONLY))!=-1 )    //FILE FOUND
-                {
-                    send(clients[n], "HTTP/1.0 200 OK\n\n", 17, 0);
-                    while ( (bytes_read=read(fd, data_to_send, BYTES))>0 )
-                        write (clients[n], data_to_send, bytes_read);
-                }
-                else    write(clients[n], "HTTP/1.0 404 Not Found\n", 23); //FILE NOT FOUND
-            }
-        }
-    }
-
-    //Closing SOCKET
-    shutdown (clients[n], SHUT_RDWR);         // Disable the future requests, it make this server stateless and   
-    close(clients[n]);		  	      // Close the nth file descriptor	
-    clients[n]=-1;			      // Reset the nth array position
+	//Closing SOCKET : Disable future requests, it makes this server stateless
+	shutdown (clients[n], SHUT_RDWR);
+	close(clients[n]);
+	clients[n]=-1;
 }
