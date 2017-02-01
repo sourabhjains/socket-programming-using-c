@@ -1,5 +1,5 @@
-/* This program works as file server.
- * It is capable of sending, receiving files and executing basic commands.
+/* This program works as Http server.
+ * It is capable of handling GET, PUT requests
  * 
  * @author  Soruabh Jain
  *	    M.Tech
